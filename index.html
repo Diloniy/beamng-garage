@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeamNG.drive Гараж | Дмитрий Бондарь</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;600;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { 
+            --terminal-orange: #ffb86c;
+            --terminal-orange-dim: #996e41;
+            --terminal-green: #50fa7b;
+            --terminal-red: #ff5555;
+            --bg-black: #050505;
+        }
+
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 10001;
+            pointer-events: none;
+            background-size: 100% 4px, 3px 100%;
+            opacity: 0.6;
+        }
+
+        body { background-color: var(--bg-black); color: var(--terminal-orange); font-family: 'Exo 2', sans-serif; margin: 0; overflow-x: hidden; }
+        .orbitron { font-family: 'Orbitron', sans-serif; text-shadow: 0 0 5px var(--terminal-orange); }
+        
+        #boot-screen {
+            position: fixed; inset: 0; background: #000; z-index: 11000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            font-family: monospace; padding: 20px; transition: opacity 0.5s;
+        }
+        .boot-log { width: 100%; max-width: 600px; color: var(--terminal-green); font-size: 12px; text-transform: uppercase; }
+
+        .glitch-img { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .showroom-card:hover .glitch-img { transform: scale(1.08); }
+        .showroom-card { background: rgba(16, 16, 16, 0.9); border: 1px solid var(--terminal-orange-dim); transition: all 0.3s ease; cursor: pointer; overflow: hidden; }
+        .showroom-card:hover { border-color: var(--terminal-orange); box-shadow: 0 0 20px rgba(255, 184, 108, 0.2); transform: translateY(-3px); }
+        .showroom-card.hidden { display: none; }
+        
+        #modal { display: none; position: fixed; inset: 0; z-index: 9999; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.95); padding: 20px; }
+        .spec-item { border-bottom: 1px solid rgba(255, 184, 108, 0.1); padding: 8px 0; }
+
+        .category-btn, .action-btn { background: none; border: 1px solid var(--terminal-orange-dim); padding: 6px 12px; font-size: 10px; cursor: pointer; color: var(--terminal-orange-dim); text-transform: uppercase; font-weight: bold; letter-spacing: 1px; transition: 0.2s; }
+        .category-btn.active, .action-btn:hover { background: var(--terminal-orange-dim); color: var(--bg-black); }
+        
+        .limit-btn { border: 1px solid #444; color: #888; padding: 4px 12px; font-size: 10px; cursor: pointer; transition: 0.3s; min-width: 65px; }
+        .limit-btn.active { border-color: var(--terminal-orange); color: var(--terminal-orange); box-shadow: 0 0 10px rgba(255, 184, 108, 0.3); }
+
+        #diag-console { position: relative; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.9); border: 2px solid var(--terminal-green); color: var(--terminal-green); flex-grow: 1; overflow-y: auto; padding: 15px; margin-top: 10px; height: 240px; box-shadow: inset 0 0 30px rgba(80, 250, 123, 0.1); scroll-behavior: smooth; }
+        .error-text { color: var(--terminal-red); font-weight: bold; text-shadow: 0 0 5px var(--terminal-red); }
+        .success-text { color: #fff; text-shadow: 0 0 5px var(--terminal-green); }
+        .cmd-input { background: transparent; border: none; color: var(--terminal-green); outline: none; width: 100%; font-family: monospace; }
+        .desc-box { font-size: 11px; line-height: 1.4; color: #ccc; margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.03); border-left: 2px solid var(--terminal-orange-dim); }
+    </style>
+</head>
+<body class="p-6">
+
+    <div id="boot-screen">
+        <div class="boot-log" id="boot-log"></div>
+    </div>
+
+    <header class="max-w-7xl mx-auto mb-6 flex justify-between items-center bg-black p-6 rounded border border-[var(--terminal-orange-dim)]">
+        <div>
+            <h1 class="orbitron text-4xl font-black italic text-white uppercase">BeamNG Garage</h1>
+            <p class="text-[10px] uppercase tracking-widest opacity-60">Шеф-механик: Дмитрий Бондарь | Гр. 457 ТОМИНТЕХ</p>
+        </div>
+        <div class="text-right border-l border-orange-600 pl-6">
+            <p class="text-[10px] text-orange-500 font-bold uppercase">ТЕЛЕМЕТРИЯ 2026:</p>
+            <p class="text-sm font-bold italic text-white uppercase">Engine Diagnosis</p>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row gap-4 items-center">
+        <input type="text" id="searchInput" onkeyup="applyFilters()" placeholder="ПОИСК ПО БАЗЕ..." class="p-3 pl-4 rounded bg-transparent border border-[var(--terminal-orange-dim)] text-sm w-full md:w-80 outline-none orbitron text-white">
+        <div class="flex-grow"></div>
+        <div id="stat-count" class="text-[9px] orbitron text-orange-500 uppercase">ОБЪЕКТОВ В ГАРАЖЕ: 0</div>
+    </div>
+
+    <div class="max-w-7xl mx-auto mb-10 flex flex-wrap gap-2">
+        <button class="category-btn active" onclick="setCategory('all', this)">[Все]</button>
+        <button class="category-btn" onclick="setCategory('hatch', this)">[Хэтчбеки]</button>
+        <button class="category-btn" onclick="setCategory('sedan', this)">[Седаны]</button>
+        <button class="category-btn" onclick="setCategory('pickup', this)">[Пикапы]</button>
+        <button class="category-btn" onclick="setCategory('special', this)">[Спецтехника]</button>
+    </div>
+
+    <div id="carGallery" class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+    <div id="modal" onclick="if(event.target == this) closeModal()">
+        <div class="relative w-full max-w-6xl bg-[#101010] border-2 border-[var(--terminal-orange-dim)] flex flex-col md:flex-row overflow-hidden shadow-2xl">
+            <div class="w-full md:w-1/2 bg-black flex flex-col p-4 border-r border-[var(--terminal-orange-dim)]">
+                <img id="m-img" src="" class="max-h-[300px] object-contain mb-4 glitch-img">
+                <div class="grid grid-cols-2 gap-2 mb-4 opacity-80 text-[10px] font-mono border-b border-orange-900 pb-2">
+                    <div>UNIT_ID: <span class="text-white">DB-457-SYS</span></div>
+                    <div>FUEL: <span class="text-white">HI-OCTANE</span></div>
+                    <div>STATUS: <span class="text-green-500">READY</span></div>
+                    <div>LINK: <span class="text-white">OBD-II OK</span></div>
+                </div>
+                <div class="space-y-1">
+                    <div class="spec-item"><p class="text-gray-500 text-[9px] uppercase">Спецификация</p><p id="m-sub" class="font-bold text-sm text-white"></p></div>
+                    <div class="spec-item"><p class="text-gray-500 text-[9px] uppercase">Двигатель (ДВС)</p><p id="m-eng" class="font-bold text-sm text-white"></p></div>
+                    <div class="spec-item"><p class="text-gray-500 text-[9px] uppercase">Разгон 0-100</p><p id="m-accel" class="font-bold text-sm text-white"></p></div>
+                </div>
+                <div id="m-desc" class="desc-box"></div>
+            </div>
+            
+            <div class="w-full md:w-1/2 p-8 flex flex-col">
+                <h2 id="m-name" class="orbitron text-3xl font-black italic mb-2 uppercase text-white"></h2>
+                <div class="mb-4 flex items-center gap-3">
+                    <span class="text-[9px] uppercase opacity-50">Отсечка:</span>
+                    <button id="lim100" onclick="setTestLimit(100)" class="limit-btn">100 KM/H</button>
+                    <button id="lim200" onclick="setTestLimit(200)" class="limit-btn">200 KM/H</button>
+                    <button id="limMax" onclick="setTestLimit('max')" class="limit-btn active">МАКС</button>
+                </div>
+                <div id="diag-console">
+                    <div class="opacity-50 text-[10px] mb-2">--- ТЕЛЕМЕТРИЯ АВТОМОБИЛЯ | АНАЛИЗ: ДМИТРИЙ БОНДАРЬ ---</div>
+                    <div id="diag-text">Двигатель выключен. Введите 'start'...</div>
+                </div>
+                <div class="mt-2 flex bg-black border border-green-900 p-2 items-center">
+                    <span class="text-green-500 mr-2 font-mono text-xs">></span>
+                    <input type="text" id="cmdInput" class="cmd-input text-xs" placeholder="Жду команду..." onkeypress="handleCmd(event)">
+                </div>
+                <div class="flex gap-2 mt-4">
+                    <button id="diag-btn" onclick="startDetailedDiag()" class="action-btn flex-grow">ЗАПУСТИТЬ ТЕСТ-ДРАЙВ</button>
+                    <button onclick="closeModal()" class="action-btn px-4">ВЫЙТИ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const log = document.getElementById('boot-log');
+            const lines = [
+                "> ЗАГРУЗКА ГАРАЖНОГО ТЕРМИНАЛА...",
+                "> ПОИСК НОВЫХ ФАЙЛОВ В /CARS/...",
+                "> НАЙДЕНО: HIROCHI HT-55, CHERRIER VIVACE, MALUCH...",
+                "> СИНХРОНИЗАЦИЯ С ЭБУ... OK",
+                "> ТЕЛЕМЕТРИЯ ГОТОВА К РАБОТЕ."
+            ];
+            let i = 0;
+            const interval = setInterval(() => {
+                if(i < lines.length) { log.innerHTML += lines[i] + "<br>"; i++; } 
+                else { clearInterval(interval); setTimeout(() => {
+                    document.getElementById('boot-screen').style.opacity = '0';
+                    setTimeout(() => document.getElementById('boot-screen').remove(), 400);
+                }, 400); }
+            }, 150);
+        });
+
+        const carsData = [
+            { id: 'vivace', cat: 'hatch', name: 'Cherrier Vivace S 410q', type: 'Спорт-хэтчбек', accel: '3.8 сек', maxSpeed: 265, desc: 'Полноприводный современный спорткар. Требуется калибровка межосевой муфты и давления турбины.', variants: [{ sub: 'S 410q DCT', eng: '2.5L I5 Turbo', img: 'cars/Vivace_S_410q_DCT.png' }] },
+            { id: 'ht55', cat: 'special', name: 'Hirochi HT-55', type: 'Карьерный самосвал', accel: '45.0 сек', maxSpeed: 65, desc: 'Гигант. Проверка гидравлических насосов и давления масла в сверхтяжелом режиме.', variants: [{ sub: 'Standard Heavy', eng: 'V12 Diesel Turbo', img: 'cars/Hirochi_ht-55_standard_config_thumbnail.png' }] },
+            { id: 'sunburst_sport', cat: 'sedan', name: 'Hirochi Sunburst Sport RS', type: 'Спорт-седан', accel: '4.8 сек', maxSpeed: 235, desc: 'Турбированный оппозитник. Проверьте интеркулер и баланс AWD.', variants: [{ sub: 'Sport RS AWD', eng: '2.0L F4 Turbo', img: 'cars/Hirochi_sunburst_sport_rs.png' }] },
+            { id: 'sunburst_remaster', cat: 'sedan', name: 'Sunburst Remaster', type: 'Седан', accel: '7.2 сек', maxSpeed: 210, desc: 'Классическая модель. Обновленные карты впрыска и подвеска.', variants: [{ sub: '2.0 Sport', eng: '2.0L F4 N/A', img: 'cars/Sunburst_Remaster.png' }] },
+            { id: 'maluch', cat: 'hatch', name: 'Maluch 110m', type: 'Микролитражка', accel: '22.4 сек', maxSpeed: 105, desc: 'Легенда. Проверьте уровень масла и натяжение ремня охлаждения.', variants: [{ sub: '110m Standard', eng: '0.6L L2 Air-cooled', img: 'cars/110_m.png' }] },
+            { id: 'baja', cat: 'special', name: 'Baja Unlimited Class 5', type: 'Багги', accel: '5.2 сек', maxSpeed: 180, desc: 'Внедорожный болид. Проверка давления в амортизаторах FOX.', variants: [{ sub: 'Class 5', eng: 'V8 Trophy Spec', img: 'cars/Baja_Unlimited_Class_5_29.png' }] },
+            { id: 'dseries', cat: 'pickup', name: 'Gavril D-Series', type: 'Пикап', accel: '8.2 сек', maxSpeed: 165, desc: 'Рамный зверь. Осмотрите крестовины кардана.', variants: [{ sub: 'D15 V8 4WD', eng: 'V8 5.5л', img: 'cars/Gavril-D-Series.png' }] },
+            { id: 'pessima', cat: 'sedan', name: 'Ibishu Pessima', type: 'Седан', accel: '11.5 сек', maxSpeed: 158, desc: 'Надежный японец. Проверьте ГРМ.', variants: [{ sub: '1.8 DX', eng: 'I4 1.8л', img: 'cars/Ibishu-pessima.png' }] },
+            { id: 'bastion', cat: 'sedan', name: 'Bruckell Bastion', type: 'Маслкар', accel: '6.8 сек', maxSpeed: 245, desc: 'Мощный седан. Проверка датчиков детонации.', variants: [{ sub: 'Base SE', eng: 'V6 3.5л', img: 'cars/Base_v6_A_Bastion.png' }] },
+            { id: 'covet', cat: 'hatch', name: 'Ibishu Covet', type: 'Хэтчбек', accel: '10.2 сек', maxSpeed: 172, desc: 'Легкий и быстрый. Проверка ШРУСов.', variants: [{ sub: 'DXi A', eng: 'I4 1.5л', img: 'cars/DXi_A_NewCovet.png' }] }
+        ];
+
+        let currentCategory = 'all';
+        let activeLimit = 'max'; 
+        let selectedCar = null;
+
+        function renderGallery() {
+            const gallery = document.getElementById('carGallery');
+            gallery.innerHTML = '';
+            carsData.forEach(car => {
+                const card = document.createElement('div');
+                card.className = 'showroom-card p-2';
+                card.onclick = () => openCarModal(car.id);
+                card.setAttribute('data-name', car.name.toLowerCase());
+                card.setAttribute('data-cat', car.cat);
+                card.innerHTML = `<div class="card-img-wrap"><img src="${car.variants[0].img}" class="glitch-img w-full h-48 object-contain bg-black"></div>
+                    <div class="p-4 bg-black/50"><h3 class="orbitron text-lg font-bold italic text-white uppercase">${car.name}</h3>
+                    <p class="text-[9px] uppercase tracking-widest text-orange-800">${car.type}</p></div>`;
+                gallery.appendChild(card);
+            });
+            document.getElementById('stat-count').innerText = `Объектов в гараже: ${carsData.length}`;
+            applyFilters();
+        }
+
+        function setTestLimit(val) {
+            activeLimit = val;
+            document.getElementById('lim100').classList.toggle('active', val === 100);
+            document.getElementById('lim200').classList.toggle('active', val === 200);
+            document.getElementById('limMax').classList.toggle('active', val === 'max');
+        }
+
+        function openCarModal(carId) {
+            selectedCar = carsData.find(c => c.id === carId);
+            document.getElementById('m-name').innerText = selectedCar.name;
+            document.getElementById('m-img').src = selectedCar.variants[0].img;
+            document.getElementById('m-sub').innerText = selectedCar.variants[0].sub;
+            document.getElementById('m-eng').innerText = selectedCar.variants[0].eng;
+            document.getElementById('m-accel').innerText = selectedCar.accel;
+            document.getElementById('m-desc').innerText = selectedCar.desc;
+            document.getElementById('diag-text').innerHTML = "Системы ДВС в режиме ожидания. Введите 'start'";
+            document.getElementById('modal').style.display = 'flex';
+            document.getElementById('cmdInput').focus();
+        }
+
+        function handleCmd(e) {
+            if (e.key === 'Enter') {
+                const val = e.target.value.toLowerCase();
+                e.target.value = '';
+                if (val === 'start') startDetailedDiag();
+                else if (val === 'clear') document.getElementById('diag-text').innerHTML = '';
+                else if (val === 'exit') closeModal();
+            }
+        }
+
+        function startDetailedDiag() {
+            const diagText = document.getElementById('diag-text');
+            const btn = document.getElementById('diag-btn');
+            const targetSpeed = activeLimit === 'max' ? selectedCar.maxSpeed : activeLimit;
+            const failChance = Math.random() < 0.12;
+            
+            diagText.innerHTML = `> ЗАПУСК ТЕЛЕМЕТРИИ... РЕЖИМ: ${activeLimit === 'max' ? 'МАКС' : activeLimit + ' KM/H'}<br>> ДАВЛЕНИЕ МАСЛА: OK<br>---<br>`;
+            btn.disabled = true;
+
+            const logs = ["Проверка ГРМ...", "Давление: 4.8 bar", "Наддув: +1.2 bar", "Температура: 92°C", "Сцепление: OK", "ABS: Active", "Угол зажигания: OK", "Трансмиссия: OK"];
+
+            let step = 0;
+            const interval = setInterval(() => {
+                if (failChance && step === 5) {
+                    diagText.innerHTML += "<span class='error-text'><br>> !!! КРИТИЧЕСКИЙ СБОЙ !!!<br>> ПЕРЕГРЕВ ИЛИ ОБРЫВ ГРМ<br>> ТЕСТ ПРЕРВАН.</span>";
+                    clearInterval(interval);
+                    btn.disabled = false;
+                    return;
+                }
+
+                let currentSpeed = Math.round((targetSpeed / 8) * (step + 1));
+                const bar = "█".repeat(step + 1) + "░".repeat(7 - step);
+                diagText.innerHTML += `[${bar}] ${currentSpeed} КМ/Ч | ${1500 + (step * 800)} RPM | ${logs[step]}<br>`;
+                document.getElementById('diag-console').scrollTop = document.getElementById('diag-console').scrollHeight;
+
+                step++;
+                if (step === 8) {
+                    clearInterval(interval);
+                    diagText.innerHTML += `<br><span class='success-text'>> ТЕСТ ЗАВЕРШЕН. ДОСТИГНУТО: ${currentSpeed} КМ/Ч. УЗЛЫ В НОРМЕ.</span>`;
+                    btn.disabled = false;
+                }
+            }, 300);
+        }
+
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+        function setCategory(cat, btn) {
+            currentCategory = cat;
+            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            applyFilters();
+        }
+        function applyFilters() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            document.querySelectorAll('.showroom-card').forEach(card => {
+                const name = card.getAttribute('data-name');
+                const cat = card.getAttribute('data-cat');
+                card.classList.toggle('hidden', !(name.includes(q) && (currentCategory === 'all' || cat === currentCategory)));
+            });
+        }
+        renderGallery();
+    </script>
+</body>
+</html>
